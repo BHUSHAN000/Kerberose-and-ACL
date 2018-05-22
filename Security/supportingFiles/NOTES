@@ -1,0 +1,438 @@
+Amazon AWS setup for this course. This video discusses steps that only
+need to be done once.
+
+1. Log in to AWS using Amazon / AWS credentials
+2. Select your data center 
+3. Select VPC under Networking
+4. Select Start VPC wizard 10.10.1.0/24
+5. After creating the VPC, select "Modify Auto-Assign Public IP" to enable in subnets section > Subnet actions
+6. Create a all-trafic security group associated with the VPC
+   allowing all traffic inbound and outbound 0.0.0.0/0
+7. Generate security credentials Cloudera Director supports IAM users
+   and Amazon prefers them, however we will use credentials  
+8. Download the access key and secret access key on your local machine and paste in launch-cluster.sh
+9. Create a keypair Go to ec2 dashboard name it security
+10.Download the keypair and give it 400 permissions chmod 400 keyfile.
+
+THESE SETTING ARE USED ONLY ONCE, LATER YOU CAN LAUNCH USING THESE SETTINGS
+
+11.launch instance with ami-c318a8a8
+Compute optimized c3.large
+
+12.Edit aws.simple.conf  $> grep REPLACE-ME *
+
+12.a) name: CloudAge-Hadoop-Security
+
+12.b) AWSAccessKeyId=AKIAJLSVLAOTSO7P6RTA
+      AWSSecretKey=ZWiUoy2qG+vD8s7A/Y5TzIzWQqPcCoETkkEB8cgj
+
+12.c) region: us-east-1
+
+12.d) subnetId: subnet-e2440ec9 
+
+12.e) type: m3.xlarge
+
+12.f) count: 5
+
+
+13. copy public DNS Address in the file called launcher 
+
+    echo ec2-54-85-155-200.compute-1.amazonaws.com > launcher
+
+14. sh launch-cluster.sh
+
+15. open vi editor name it cluster
+
+i-04862e24aaa101946: ec2-54-85-55-177.compute-1.amazonaws.com
+i-04a7663c9dbab0941: ec2-54-174-233-99.compute-1.amazonaws.com
+i-05d2d46e1671e18b9: ec2-54-209-158-72.compute-1.amazonaws.com
+i-06a0c94a83326030b: ec2-54-197-29-155.compute-1.amazonaws.com
+i-07473167f1e6938e9: ec2-52-23-205-210.compute-1.amazonaws.com
+i-07473167f1e6938e9: ec2-52-23-205-210.compute-1.amazonaws.com
+
+
+Press esc and at colon type 1,$ s/.*: //g  This will remove everything from line 1 upto the colon and replacing  nothing with global scope.
+
+16. echo ec2-54-198-210-80.compute-1.amazonaws.com > cm
+
+17. connect to cloudera-manager paste in the browser ec2-54-198-210-80.compute-1.amazonaws.com:7180
+
+18. ssh -i security.pem ec2-user@`cat cm`
+
+19. The url is the cm hostname:7180
+the username and password is admin/admin
+
+Cloudera Manager, or CM 
+Shows you service health and charts
+Lets you start and stop services
+Tells you dependent services and warns you if you do things out of order
+It lets you stop services from management by "deleting" them
+It also lets you add services
+It surfaces role assignment information and lets you assign roles, but it
+makes a guess as to the proper assignments
+we will install hue and oozie it should be oozie and hue.
+CM lets you change the configurations of the services. This automatically
+edits the corresponding hadoop config xml files and deploys them, tracking
+the changes over time.
+we will uncheck "Check HDFS Permissions" which causes hdfs-site.xml
+to get regenerated with dfs.permissions set to false.
+CM lets you know when configurations are stale and services need restarting
+CM makes "safety valves" available where you can provide xml snippets for
+properties that are not explicitly available in the UI. 
+we can put a bit of text in a Safety Valve
+
+
+http://www.cloudera.com/products/cloudera-manager.html
+http://www.cloudera.com/documentation/enterprise/latest/topics/cm_intro_primer.html
+
+
+20.#########REStart cluster that has hdfs permissions DISabled######After Finish ####
+
+21.echo ec2-54-174-233-99.compute-1.amazonaws.com > host
+
+
+22. ssh -i ./security.pem ec2-user@`cat host`
+
+
+
+sudo useradd jinga
+sudo passwd jinga
+su jinga
+hadoop fs -mkdir /user/jinga
+vi file
+Hello This a test for security
+Hello This a test for security
+Hello This a test for security
+Hello This a test for security
+:wq
+
+hadoop fs -put file .
+
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 10 10
+
+hadoop fsck /user/jinga -files -blocks -locations
+
+find /data0/dfs /data1/dfs -name *blk_1073742306*
+
+cat /data1/dfs/dn/current/BP-355525728-10.0.0.43-1480083315118/current/finalized/subdir0/subdir1/blk_1073742306
+
+See the unencrypted text
+
+now exit from jinga
+
+In another window, ssh to the host again with ec2-user install
+
+sudo yum install libpcap -y && sudo yum install wireshark -y
+
+sudo dumpcap -i eth0 
+
+^C
+
+on another window of jinga user  create
+
+vi files
+
+Jinga you are playing with security.
+Jinga you are playing with security.
+Jinga you are playing with security.
+Jinga you are playing with security.
+Jinga you are playing with security.
+Jinga you are playing with security.
+:wq
+
+
+In the first window, edit a file and place it into hdfs
+
+hadoop fs -put files
+
+login to ec2-user
+
+sudo tshark -r /tmp/wireshark_eth0_20161125161245_gBcY79 -V | grep -i jinga
+
+There's data going over the wire unencrypted between HDFS clients and processes
+There's data going over the wire unencrypted between HDFS processes on different
+nodes.
+
+
+
+HDFS permissions have been re-enabled
+
+Two windows
+
+Two files with hostnames in them
+Window 1: ssh to host1
+ssh -i security.pem ec2-user@`cat host1`
+
+Try to do 
+
+hadoop fs- mkdir /user/bingo
+
+and see a permission denied error
+
+cat /etc/passwd
+
+sudo -i 
+
+su - hdfs
+
+HDFS is the root user for HDFS
+
+So now you can create home directories for users
+
+hadoop fs -mkdir /user/usera
+hadoop fs -chown usera:usera /user/usera
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar randomwriter /user/usera/bingo
+
+Now add and become usera
+
+sudo useradd usera 
+
+sudo sh
+
+su - usera
+
+run a job:
+
+While that's running, ssh to host2 in the other window
+add another user with the same name
+
+sudo useradd usera
+
+sudo sh
+
+su - usera
+
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar randomwriter /user/usera/bar
+
+no authentication, so no way of knowing if it's the same
+user on both hosts. 
+
+The only reason this works is because the user name exists on both hosts.
+
+
+
+ssh to a host
+launch the hive shell:
+
+From hive, create two tables:
+
+create table beauty (a string, b string, c string) row format delimited fields terminated by '\t';
+
+create table ugly (a string, b string, c string) row format delimited fields terminated by '\t';
+
+describe ugly;
+describe extended beauty;
+
+exit;
+
+
+You can find out where the files backing the stable are stored in HDFS
+Add data to a pair of files tab delimited dataset and datasets
+
+vi dataset
+
+hello	hello	hello	hello
+hello   hello   hello   hello
+hello   hello   hello   hello
+hello   hello   hello   hello
+hello   hello   hello   hello
+hello   hello   hello   hello
+hello   hello   hello   hello
+:wq
+
+vi datasets
+
+fellow	fellow	fellow
+fellow	fellow	fellow
+fellow	fellow	fellow
+fellow	fellow	fellow
+fellow	fellow	fellow
+fellow	fellow	fellow
+:wq
+
+Then back in hive
+
+load data local inpath 'dataset' into table ugly;
+select * from ugly;
+load data local inpath 'datasets' into table beauty;
+select * from beauty;
+
+Add the data to hive dataset using:
+
+hadoop fs -put dataset /user/hive/warehouse/ugly
+
+hadoop fs -cat /user/hive/warehouse/beauty/datasets
+
+Edit a pair of simple scripts (script1.sh, script2.sh)
+add file script1.sh; echo hello world
+
+from beauty select transform(a) using 'script.sh' as (data);
+
+add file script2.sh: 
+vi
+
+hive -e 'drop table ugly;'
+:wq
+
+
+23. ssh -i security.pem ec2-user@`cat cm`
+
+sudo yum install -y krb5-server 
+
+hostname -f (ip-10-0-0-169.ec2.internal)
+
+sudo vi /etc/krb5.conf
+
+[logging]
+ default = FILE:/var/log/krb5libs.log
+ kdc = FILE:/var/log/krb5kdc.log
+ admin_server = FILE:/var/log/kadmind.log
+
+[libdefaults]
+ default_realm = HADOOPSECURITY.COM
+ dns_lookup_realm = false
+ dns_lookup_kdc = false
+ ticket_lifetime = 24h
+ renew_lifetime = 7d
+ forwardable = true
+
+
+
+ default_tgs_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arcfour-hmac-md5
+ default_tkt_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arcfour-hmac-md5
+   permitted_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arcfour-hmac-md5
+
+
+[realms]
+ HADOOPSECURITY.COM = {
+  kdc = ip-10-0-0-169.ec2.internal
+  admin_server = ip-10-0-0-169.ec2.internal
+  max_renewable_life = 7d
+ }
+
+:wq
+
+sudo vi /var/kerberos/krb5kdc/kadm5.acl
+
+*/admin@HADOOPSECURITY.COM      *
+
+:wq
+
+sudo vi /var/kerberos/krb5kdc/kdc.conf
+
+[kdcdefaults]
+ kdc_ports = 88
+ kdc_tcp_ports = 88
+
+[realms]
+ HADOOPSECURITY.COM = {
+  #master_key_type = aes256-cts
+  acl_file = /var/kerberos/krb5kdc/kadm5.acl
+  dict_file = /usr/share/dict/words
+  admin_keytab = /var/kerberos/krb5kdc/kadm5.keytab
+  supported_enctypes = aes256-cts:normal aes128-cts:normal des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal
+max_renewable_life = 7d
+ }
+
+:wq
+
+
+sudo kdb5_util create
+
+"Give a master password"
+
+
+sudo service krb5kdc start
+
+
+sudo service kadmin start
+
+
+exit to localmachine in the working directory.
+
+scp -i ./security.pem ec2-user@`cat cm`:/etc/krb5.conf ./
+
+sh ./clustercmd.sh sudo yum install krb5-workstation -y
+
+./putnmove.sh ./krb5.conf /etc/krb5.conf
+
+./putnmove.sh UnlimitedJCEPolicy/US_export_policy.jar /usr/java
+/jdk1.7.0_67-cloudera/jre/lib/security
+
+
+ssh -i security.pem ec2-user@`cat cm`
+
+sudo kadmin.local
+
+addprinc cm/admin
+
+exit
+
+cat cluster
+
+ssh -i security.pem ec2-user@ec2-54-197-29-155.compute-1.amazonaws.com
+
+kinit cm/admin
+
+"password"
+
+listprincs
+klist -l
+
+
+EXIT
+
+ssh -i security.pem ec2-user@`cat cm`
+
+ADMINISTRATION ENABLE KERBEROZ complete the wizard and DONE
+
+Kerberos Security Realm
+
+aes256-cts-hmac-sha1-96
+aes128-cts-hmac-sha1-96
+arcfour-hmac-md5
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
