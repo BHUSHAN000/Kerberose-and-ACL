@@ -459,9 +459,13 @@ ADMINISTRATION ENABLE KERBEROZ complete the wizard and DONE
 Kerberos Security Realm
 HADOOPSECURITY.COM
 
-aes256-cts-hmac-sha1-96
-aes128-cts-hmac-sha1-96
-arcfour-hmac-md5
+
+des3-hmac-sha1
+arcfour-hmac
+des-hmac-sha1
+des-cbc-md5
+des-cbc-crc
+
 
 cm public or private dns (hostname -f) 
 
